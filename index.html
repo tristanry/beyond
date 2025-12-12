@@ -55,11 +55,56 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 100;
-            pointer-events: auto;
             text-align: center;
             padding: 20px;
             box-sizing: border-box;
+            background: linear-gradient(to bottom right, #0F2027, #203A43, #2C5364);
+            /* Deep Ocean Gradient */
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .mode-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 16px;
+            margin: 10px;
+            width: 100%;
+            max-width: 320px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            backdrop-filter: blur(5px);
+        }
+
+        .mode-card:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .mode-card:active {
+            transform: scale(0.98);
+        }
+
+        .mode-icon {
+            font-size: 2rem;
+        }
+
+        .mode-info h3 {
+            margin: 0 0 5px 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .mode-info p {
+            margin: 0;
+            font-size: 0.85rem;
+            opacity: 0.8;
+            line-height: 1.3;
         }
 
         h1 {
@@ -138,14 +183,30 @@
 
     <!-- Start Screen / Permissions -->
     <div id="start-screen">
-        <h1>OCEAN GAZER</h1>
-        <p style="margin-bottom: 30px; line-height: 1.5; color: #ccc;">
-            This experience requires camera access, <br>GPS location, and compass access.
-        </p>
-        <div style="display: flex; gap: 15px; flex-direction: column;">
-            <button id="btn-single">Single Country</button>
-            <button id="btn-multiple">Multiple Countries (AR)</button>
+        <div style="margin-bottom: 40px; text-align: center;">
+            <h1 style="margin-bottom: 10px; font-weight: 300; letter-spacing: 4px;">OCEAN GAZER</h1>
+            <p style="opacity: 0.7; font-size: 0.9rem;">Explore the world across the horizon</p>
         </div>
+
+        <div id="btn-single" class="mode-card">
+            <div class="mode-icon">🎯</div>
+            <div class="mode-info">
+                <h3>Single Destination</h3>
+                <p>Focus on the landmass directly ahead of you.</p>
+            </div>
+        </div>
+
+        <div id="btn-multiple" class="mode-card">
+            <div class="mode-icon">🌐</div>
+            <div class="mode-info">
+                <h3>Horizon Scanner</h3>
+                <p>AR view of all coastal regions in your field of view.</p>
+            </div>
+        </div>
+
+        <p style="margin-top: 40px; font-size: 0.75rem; opacity: 0.5; max-width: 250px; line-height: 1.5;">
+            Requires Camera and Device Orientation permissions.
+        </p>
     </div>
 
     <script>
@@ -370,27 +431,12 @@
 
                 if (hasVisiblePoints) {
                     visibleShapeCount++;
-                    ctx.beginPath();
-                    // Just drawing dots or lines along horizon is boring.
-                    // To make it a "shape", we need "height". 
-                    // Since we don't have elevation data, let's fake it:
-                    // Draw a polygon from the horizon UP a bit?? No, land is typically "on" the water.
-                    // Actually, if we just connect the dots on the horizon line workflow, it's a line.
-                    // Better: Create a fake "height" for visual feedback.
-
-                    // IMPROVED VISUALIZATION:
-                    // Connect the points. Since they are all on Y=horizonY, it's a flat line.
-                    // That's invisible/boring.
-                    // Let's vary Y based on distance to make it look like it recedes?
-                    // Or let's just draw vertical markers for each vertex?
-                    // Let's try: Draw the polygon shape assuming the points have some arbitrary height?
-
-                    // Simple working solution for "Multiple Countries":
-                    // Draw the name of the country floating at its centroid's bearing.
-
-                    // Calculate Centroid bearing roughly
+                    // Calculate Centroid bearing roughly for user experience
                     let sumX = 0;
                     let count = 0;
+                    // Also track distance mostly to show closest
+                    let minDistance = 99999;
+
                     projectedPoints.forEach(p => {
                         if (Math.abs(p.rel) < 90) { // Only count points vaguely in front
                             sumX += p.x;
@@ -398,38 +444,84 @@
                         }
                     });
 
+                    // Quick distance calc (center roughly)
+                    // We don't have exact distance to the polygon "center" readily without calc, 
+                    // but we can use the closest point or just do a quick re-calc for the label logic.
+                    // For UX, let's just use the raycast logic or an approximation.
+                    // Actually getting distance for "Multiple" mode is tricky without Raycasting every pixel.
+                    // Let's iterate country points and find closest to USER (not cursor).
+                    // Wait, COUNTRIES data is static polygons. 
+                    // Let's approximate distance from User to the first point of poly for the label tag.
+                    if (country.poly.length > 0) {
+                        const p1 = country.poly[0];
+                        // Haversine approx
+                        const R = 6371;
+                        const dLat = toRad(p1[0] - state.lat);
+                        const dLon = toRad(p1[1] - state.lon);
+                        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                            Math.cos(toRad(state.lat)) * Math.cos(toRad(p1[0])) *
+                            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                        minDistance = R * c;
+                    }
+
+
                     if (count > 0) {
                         const centerX = sumX / count;
 
-                        // Draw Label
-                        ctx.save();
-                        ctx.fillStyle = "white";
-                        ctx.font = "16px sans-serif";
-                        ctx.textAlign = "center";
-                        ctx.fillText(country.name, centerX, horizonY - 20);
+                        // --- Draw Signpost UX ---
+                        const pinHeight = 60;
+                        const labelY = horizonY - pinHeight;
 
-                        // Draw Indicator Line
+                        // Vertical Stem
                         ctx.beginPath();
                         ctx.moveTo(centerX, horizonY);
-                        ctx.lineTo(centerX, horizonY - 15);
-                        ctx.strokeStyle = "white";
+                        ctx.lineTo(centerX, labelY + 10); // Stop before text
+                        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+                        ctx.lineWidth = 1;
                         ctx.stroke();
 
-                        // Draw faint polygon lines along horizon?
-                        // It's just a line on the horizon. Let's make it a thick semi-transparent band.
-                        // Sort points by X?
-                        // Polygons are ordered.
-
+                        // Dot on horizon
                         ctx.beginPath();
-                        let first = true;
-                        projectedPoints.forEach(p => {
-                            if (first) { ctx.moveTo(p.x, horizonY); first = false; }
-                            else { ctx.lineTo(p.x, horizonY); }
-                        });
-                        ctx.lineWidth = 4;
+                        ctx.arc(centerX, horizonY, 3, 0, Math.PI * 2);
+                        ctx.fillStyle = "white";
+                        ctx.fill();
+
+                        // Label Background (Pill)
+                        ctx.font = "bold 14px -apple-system, BlinkMacSystemFont, Roboto, sans-serif";
+                        const text = country.name;
+                        const distText = Math.round(minDistance).toLocaleString() + " km";
+                        const fullText = text; // Just name for pill title
+                        const width = ctx.measureText(fullText).width + 30;
+                        const height = 45;
+
+                        // shadow
+                        ctx.shadowColor = "rgba(0,0,0,0.3)";
+                        ctx.shadowBlur = 10;
+
+                        // Pill Shape
+                        ctx.fillStyle = "rgba(10, 20, 30, 0.75)";
+                        ctx.beginPath();
+                        ctx.roundRect(centerX - width / 2, labelY - height / 2, width, height, 8);
+                        ctx.fill();
+                        ctx.shadowBlur = 0; // reset
+
+                        // Border
                         ctx.strokeStyle = "rgba(255,255,255,0.3)";
+                        ctx.lineWidth = 1;
                         ctx.stroke();
-                        ctx.restore();
+
+                        // Text Name
+                        ctx.fillStyle = "white";
+                        ctx.textAlign = "center";
+                        ctx.textBaseline = "middle";
+                        ctx.fillText(text, centerX, labelY - 7);
+
+                        // Text Distance
+                        ctx.font = "11px -apple-system, BlinkMacSystemFont, Roboto, sans-serif";
+                        ctx.fillStyle = "#ccc";
+                        ctx.fillText(distText, centerX, labelY + 8);
+
                     }
                 }
             });
