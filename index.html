@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ocean Gazer</title>
     <style>
-        body, html {
+        body,
+        html {
             margin: 0;
             padding: 0;
             width: 100%;
@@ -23,7 +25,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            z-index: -1;
+            z-index: 1;
         }
 
         #ui-layer {
@@ -36,8 +38,10 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0,0,0,0.3); /* Slight dim for readability */
+            background: rgba(0, 0, 0, 0.3);
+            /* Slight dim for readability */
             pointer-events: none;
+            z-index: 2;
         }
 
         #start-screen {
@@ -62,7 +66,7 @@
             font-weight: 200;
             letter-spacing: 2px;
             margin-bottom: 2rem;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         }
 
         button {
@@ -84,7 +88,7 @@
         .info-text {
             font-size: 1.5rem;
             text-align: center;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
             margin-bottom: 10px;
             max-width: 80%;
         }
@@ -92,7 +96,7 @@
         .secondary-text {
             font-size: 1rem;
             opacity: 0.8;
-            text-shadow: 0 1px 5px rgba(0,0,0,0.8);
+            text-shadow: 0 1px 5px rgba(0, 0, 0, 0.8);
         }
 
         #compass-debug {
@@ -103,6 +107,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <!-- Camera Feed -->
@@ -134,21 +139,21 @@
             {
                 name: "🇺🇸 United States",
                 poly: [
-                    [24.5, -81.8], [32.0, -81.0], [35.0, -75.0], [41.0, -70.0], [45.0, -67.0], 
-                    [47.0, -68.0], [49.0, -95.0], [30.0, -95.0], [25.0, -97.0] 
+                    [24.5, -81.8], [32.0, -81.0], [35.0, -75.0], [41.0, -70.0], [45.0, -67.0],
+                    [47.0, -68.0], [49.0, -95.0], [30.0, -95.0], [25.0, -97.0]
                 ] // Rough East/Gulf Coast
             },
             {
                 name: "🇨🇦 Canada",
                 poly: [
-                    [43.0, -66.0], [45.0, -67.0], [50.0, -60.0], [55.0, -55.0], 
+                    [43.0, -66.0], [45.0, -67.0], [50.0, -60.0], [55.0, -55.0],
                     [60.0, -60.0], [60.0, -100.0], [45.0, -80.0]
                 ]
             },
             {
                 name: "🇧🇷 Brazil",
                 poly: [
-                    [-33.0, -53.0], [-23.0, -42.0], [-10.0, -35.0], [-5.0, -35.0], 
+                    [-33.0, -53.0], [-23.0, -42.0], [-10.0, -35.0], [-5.0, -35.0],
                     [4.0, -50.0], [0.0, -70.0], [-20.0, -60.0]
                 ]
             },
@@ -222,11 +227,11 @@
             const angDist = dist / R;
 
             const lat2Rad = Math.asin(Math.sin(lat1Rad) * Math.cos(angDist) +
-                                      Math.cos(lat1Rad) * Math.sin(angDist) * Math.cos(bearingRad));
-            
+                Math.cos(lat1Rad) * Math.sin(angDist) * Math.cos(bearingRad));
+
             let lon2Rad = lon1Rad + Math.atan2(Math.sin(bearingRad) * Math.sin(angDist) * Math.cos(lat1Rad),
-                                               Math.cos(angDist) - Math.sin(lat1Rad) * Math.sin(lat2Rad));
-            
+                Math.cos(angDist) - Math.sin(lat1Rad) * Math.sin(lat2Rad));
+
             // Normalize lon to -180 to +180
             lon2Rad = (lon2Rad + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
 
@@ -244,7 +249,7 @@
             for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
                 const xi = vs[i][1], yi = vs[i][0];
                 const xj = vs[j][1], yj = vs[j][0];
-                
+
                 const intersect = ((yi > y) !== (yj > y)) &&
                     (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
                 if (intersect) inside = !inside;
@@ -254,15 +259,26 @@
 
         // The Core Logic: Raycast across the ocean
         function findLand(lat, lon, heading) {
+            // Identify start country
+            let startCountry = null;
+            for (const c of COUNTRIES) {
+                if (isPointInPolygon({ lat, lon }, c.poly)) {
+                    startCountry = c.name;
+                    break;
+                }
+            }
+
             // Step size in km. 100km is decent for performance vs accuracy on this scale.
-            const step = 50; 
+            const step = 50;
             const maxDist = 20000; // Half way around world roughly
 
             for (let d = step; d < maxDist; d += step) {
                 const p = getDestination(lat, lon, heading, d);
-                
+
                 // Check all countries
                 for (const country of COUNTRIES) {
+                    if (country.name === startCountry) continue; // Ignore origin
+
                     if (isPointInPolygon(p, country.poly)) {
                         return { country: country.name, distance: d };
                     }
@@ -273,7 +289,7 @@
 
         // --- Update Loop ---
         let lastCalcTime = 0;
-        
+
         function updateUI() {
             if (!state.hasLocation || !state.hasHeading) {
                 elDebug.innerText = `GPS: ${state.hasLocation ? 'OK' : 'Waiting'} | Compass: ${state.hasHeading ? 'OK' : 'Waiting'}`;
@@ -283,9 +299,9 @@
             const now = Date.now();
             if (now - lastCalcTime > 500) { // Throttle internal logic to 2fps for battery saving
                 lastCalcTime = now;
-                
+
                 const result = findLand(state.lat, state.lon, state.heading);
-                
+
                 if (result) {
                     elName.innerText = result.country;
                     elDist.innerText = `${Math.round(result.distance).toLocaleString()} km`;
@@ -293,7 +309,7 @@
                     elName.innerText = "The Open Ocean";
                     elDist.innerText = "No land in sight";
                 }
-                
+
                 elDebug.innerText = `Heading: ${Math.round(state.heading)}° | Lat: ${state.lat.toFixed(2)} Lon: ${state.lon.toFixed(2)}`;
             }
         }
@@ -305,8 +321,8 @@
 
             // 1. Camera
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: { exact: "environment" } } 
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { exact: "environment" } }
                 }).catch(() => {
                     // Fallback if "environment" exact fails (some deskops)
                     return navigator.mediaDevices.getUserMedia({ video: true });
@@ -357,7 +373,7 @@
         function handleAbsoluteOrientation(e) {
             // Android Chrome often uses this for true north
             if (e.alpha !== null) {
-                state.heading = 360 - e.alpha; 
+                state.heading = 360 - e.alpha;
                 state.hasHeading = true;
                 updateUI();
             }
@@ -369,13 +385,13 @@
                 state.heading = e.webkitCompassHeading;
                 state.hasHeading = true;
                 updateUI();
-            } else if (!state.hasHeading && e.alpha !== null) { 
+            } else if (!state.hasHeading && e.alpha !== null) {
                 // Fallback for devices that don't support absolute but send alpha
                 // Check if absolute is true
                 if (e.absolute) {
-                     state.heading = 360 - e.alpha;
-                     state.hasHeading = true;
-                     updateUI();
+                    state.heading = 360 - e.alpha;
+                    state.hasHeading = true;
+                    updateUI();
                 }
             }
         }
@@ -385,4 +401,5 @@
 
     </script>
 </body>
+
 </html>
