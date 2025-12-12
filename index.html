@@ -5,6 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ocean Gazer</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Montserrat:wght@200;400;600&display=swap"
+        rel="stylesheet">
     <style>
         body,
         html {
@@ -13,9 +19,10 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: #000;
             color: white;
+            overflow: hidden;
         }
 
         #camera-feed {
@@ -28,142 +35,112 @@
             z-index: 1;
         }
 
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.3);
-            /* Slight dim for readability */
-            pointer-events: none;
-            z-index: 2;
-        }
-
+        /* UI & Glassmorphism */
         #start-screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: #000;
+            background: radial-gradient(circle at center, #1a2a3a 0%, #000000 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            z-index: 100;
+            pointer-events: auto;
             text-align: center;
-            padding: 20px;
+            padding: 30px;
             box-sizing: border-box;
-            background: linear-gradient(to bottom right, #0F2027, #203A43, #2C5364);
-            /* Deep Ocean Gradient */
-            color: white;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
-        }
-
-        .mode-card {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 20px;
-            border-radius: 16px;
-            margin: 10px;
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
             width: 100%;
-            max-width: 320px;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            max-width: 400px;
             display: flex;
-            align-items: center;
-            gap: 15px;
-            backdrop-filter: blur(5px);
-        }
-
-        .mode-card:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .mode-card:active {
-            transform: scale(0.98);
-        }
-
-        .mode-icon {
-            font-size: 2rem;
-        }
-
-        .mode-info h3 {
-            margin: 0 0 5px 0;
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-
-        .mode-info p {
-            margin: 0;
-            font-size: 0.85rem;
-            opacity: 0.8;
-            line-height: 1.3;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
 
         h1 {
+            font-family: 'Montserrat', sans-serif;
             font-weight: 200;
-            letter-spacing: 2px;
-            margin-bottom: 2rem;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            font-size: 2.5rem;
+            letter-spacing: 4px;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, #fff 0%, #888 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        button {
-            background: white;
-            color: black;
-            border: none;
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            border-radius: 50px;
+        p.subtitle {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 12px;
             cursor: pointer;
-            font-weight: 600;
-            transition: transform 0.2s;
+            transition: all 0.3s ease;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
         }
 
-        button:active {
-            transform: scale(0.95);
+        .mode-btn:hover,
+        .mode-btn:active {
+            background: rgba(64, 169, 255, 0.1);
+            border-color: rgba(64, 169, 255, 0.3);
+            transform: translateY(-2px);
         }
 
-        .info-text {
-            font-size: 1.5rem;
-            text-align: center;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-            margin-bottom: 10px;
-            max-width: 80%;
+        .mode-btn h3 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.1rem;
+            margin: 0 0 5px 0;
+            color: #fff;
         }
 
-        .secondary-text {
-            font-size: 1rem;
-            opacity: 0.8;
-            text-shadow: 0 1px 5px rgba(0, 0, 0, 0.8);
+        .mode-btn span {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* HUD Styles for Normal Text Mode */
+        #result-name {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 200;
+            font-size: 2.5rem;
+            letter-spacing: 1px;
+        }
+
+        #result-distance {
+            font-family: 'Inter', monospace;
+            /* Tech look */
+            color: #40a9ff;
+            letter-spacing: 2px;
+            font-size: 1.2rem;
+            margin-top: 5px;
         }
 
         #compass-debug {
-            position: absolute;
-            bottom: 20px;
-            font-size: 0.8rem;
-            opacity: 0.6;
-            z-index: 3;
-        }
-
-        #ar-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 2;
-        }
-
-        #result-name,
-        #result-distance {
-            z-index: 3;
+            font-family: 'Inter', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.4);
         }
     </style>
 </head>
@@ -174,39 +151,32 @@
     <video id="camera-feed" autoplay playsinline muted></video>
 
     <!-- UI Overlay -->
-    <div id="ui-layer">
+    <div id="ui-layer"
+        style="position: absolute; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;  pointer-events:none; z-index:2;">
         <canvas id="ar-canvas"></canvas>
-        <div id="result-name" class="info-text">Point your phone at the sea...</div>
-        <div id="result-distance" class="secondary-text">--</div>
+        <div id="result-name"></div>
+        <div id="result-distance"></div>
         <div id="compass-debug">Waiting for sensors...</div>
     </div>
 
     <!-- Start Screen / Permissions -->
     <div id="start-screen">
-        <div style="margin-bottom: 40px; text-align: center;">
-            <h1 style="margin-bottom: 10px; font-weight: 300; letter-spacing: 4px;">OCEAN GAZER</h1>
-            <p style="opacity: 0.7; font-size: 0.9rem;">Explore the world across the horizon</p>
-        </div>
-
-        <div id="btn-single" class="mode-card">
-            <div class="mode-icon">🎯</div>
-            <div class="mode-info">
-                <h3>Single Destination</h3>
-                <p>Focus on the landmass directly ahead of you.</p>
+        <div class="glass-card">
+            <div>
+                <h1>Ocean Gazer</h1>
+                <p class="subtitle">Augmented Reality Geography</p>
             </div>
-        </div>
 
-        <div id="btn-multiple" class="mode-card">
-            <div class="mode-icon">🌐</div>
-            <div class="mode-info">
+            <button id="btn-single" class="mode-btn">
+                <h3>Single Beam</h3>
+                <span>Identify land directly ahead.</span>
+            </button>
+
+            <button id="btn-multiple" class="mode-btn">
                 <h3>Horizon Scanner</h3>
-                <p>AR view of all coastal regions in your field of view.</p>
-            </div>
+                <span>Visualize all coastlines in AR.</span>
+            </button>
         </div>
-
-        <p style="margin-top: 40px; font-size: 0.75rem; opacity: 0.5; max-width: 250px; line-height: 1.5;">
-            Requires Camera and Device Orientation permissions.
-        </p>
     </div>
 
     <script>
@@ -367,162 +337,98 @@
             return null;
         }
 
-        // --- AR Render Logic ---
-
+        // --- AR Render Logic (HUD Style) ---
         function drawAR() {
+            // Fix: Clean entire canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Horizon roughly at center
             const horizonY = canvas.height / 2;
-            // FOV Width in degrees approx (Mobile Portrait)
             const fov = 60;
             const pxPerDeg = canvas.width / fov;
 
-            // Sort countries by distance ?? Nah, just draw them.
-
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
-            ctx.lineWidth = 2;
-            ctx.fillStyle = "rgba(255, 255, 255, 0.1)"; // Very faint fill
-
-            let visibleShapeCount = 0;
+            // Draw Horizon Line
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(0, horizonY);
+            ctx.lineTo(canvas.width, horizonY);
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+            ctx.setLineDash([5, 10]);
+            ctx.stroke();
+            ctx.restore();
 
             COUNTRIES.forEach(country => {
-                // Skip own country if needed, or draw it too? 
-                // Let's filter like findLand does roughly, or just draw everything.
-                // Simple version: draw everything.
+                let pointsOnScreen = [];
+                let sumX = 0;
 
-                let hasVisiblePoints = false;
-                const projectedPoints = [];
-
-                // We need to find the bearing to EACH point in the polygon
                 country.poly.forEach(pt => {
                     const lat2 = pt[0];
                     const lon2 = pt[1];
 
-                    // Calculate Bearing (Rhumb line or Great Circle initial bearing?)
-                    // Initial bearing is better for visual correctness locally.
+                    // Calculate Bearing
                     const y = Math.sin(toRad(lon2 - state.lon)) * Math.cos(toRad(lat2));
                     const x = Math.cos(toRad(state.lat)) * Math.sin(toRad(lat2)) -
                         Math.sin(toRad(state.lat)) * Math.cos(toRad(lat2)) * Math.cos(toRad(lon2 - state.lon));
                     const brng = toDeg(Math.atan2(y, x));
                     const bearing = (brng + 360) % 360;
 
-                    // Relative bearing to current heading
                     let rel = bearing - state.heading;
-                    // Normalize to -180...180
                     while (rel < -180) rel += 360;
                     while (rel > 180) rel -= 360;
 
-                    // If within FOV + buffer
                     if (Math.abs(rel) < (fov / 2 + 20)) {
-                        hasVisiblePoints = true;
+                        const sx = (canvas.width / 2) + (rel * pxPerDeg);
+                        const sy = horizonY;
+                        pointsOnScreen.push({ x: sx, y: sy });
+                        sumX += sx;
                     }
-
-                    // Project X
-                    const screenX = (canvas.width / 2) + (rel * pxPerDeg);
-                    // Project Y - Simple "Horizon" projection
-                    // Distance is huge, so just clamp near horizon
-                    // A tiny offset based on lat might simulate curvature? 
-                    // Let's just stick to horizon for "Silhouettes"
-                    const screenY = horizonY;
-
-                    projectedPoints.push({ x: screenX, y: screenY, label: country.name, rel: rel });
                 });
 
-                if (hasVisiblePoints) {
-                    visibleShapeCount++;
-                    // Calculate Centroid bearing roughly for user experience
-                    let sumX = 0;
-                    let count = 0;
-                    // Also track distance mostly to show closest
-                    let minDistance = 99999;
+                if (pointsOnScreen.length > 0) {
+                    const centerX = sumX / pointsOnScreen.length;
 
-                    projectedPoints.forEach(p => {
-                        if (Math.abs(p.rel) < 90) { // Only count points vaguely in front
-                            sumX += p.x;
-                            count++;
-                        }
-                    });
+                    // --- HUD Marker Visuals ---
+                    const markerHeight = 40;
+                    const labelY = horizonY - markerHeight;
 
-                    // Quick distance calc (center roughly)
-                    // We don't have exact distance to the polygon "center" readily without calc, 
-                    // but we can use the closest point or just do a quick re-calc for the label logic.
-                    // For UX, let's just use the raycast logic or an approximation.
-                    // Actually getting distance for "Multiple" mode is tricky without Raycasting every pixel.
-                    // Let's iterate country points and find closest to USER (not cursor).
-                    // Wait, COUNTRIES data is static polygons. 
-                    // Let's approximate distance from User to the first point of poly for the label tag.
-                    if (country.poly.length > 0) {
-                        const p1 = country.poly[0];
-                        // Haversine approx
-                        const R = 6371;
-                        const dLat = toRad(p1[0] - state.lat);
-                        const dLon = toRad(p1[1] - state.lon);
-                        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                            Math.cos(toRad(state.lat)) * Math.cos(toRad(p1[0])) *
-                            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-                        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                        minDistance = R * c;
-                    }
+                    // 1. Vertical Pin Line
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, horizonY);
+                    ctx.lineTo(centerX, labelY);
+                    ctx.strokeStyle = "#40a9ff"; // Tech blue
+                    ctx.lineWidth = 1;
+                    ctx.globalAlpha = 0.8;
+                    ctx.stroke();
 
+                    // 2. The Dot on Horizon
+                    ctx.beginPath();
+                    ctx.arc(centerX, horizonY, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = "#40a9ff";
+                    ctx.fill();
 
-                    if (count > 0) {
-                        const centerX = sumX / count;
+                    // 3. Label Box (Glassy)
+                    ctx.font = "14px Inter";
+                    const textWidth = ctx.measureText(country.name).width;
+                    const padding = 8;
+                    const boxX = centerX - (textWidth / 2) - padding;
+                    const boxY = labelY - 24;
+                    const boxW = textWidth + (padding * 2);
+                    const boxH = 24;
 
-                        // --- Draw Signpost UX ---
-                        const pinHeight = 60;
-                        const labelY = horizonY - pinHeight;
+                    ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; // Dark background for contrast
+                    ctx.fillRect(boxX, boxY, boxW, boxH);
 
-                        // Vertical Stem
-                        ctx.beginPath();
-                        ctx.moveTo(centerX, horizonY);
-                        ctx.lineTo(centerX, labelY + 10); // Stop before text
-                        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
-                        ctx.lineWidth = 1;
-                        ctx.stroke();
+                    // Border for tech feel
+                    ctx.strokeStyle = "rgba(64, 169, 255, 0.5)";
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(boxX, boxY, boxW, boxH);
 
-                        // Dot on horizon
-                        ctx.beginPath();
-                        ctx.arc(centerX, horizonY, 3, 0, Math.PI * 2);
-                        ctx.fillStyle = "white";
-                        ctx.fill();
+                    // Text
+                    ctx.fillStyle = "white";
+                    ctx.textAlign = "center";
+                    ctx.fillText(country.name.toUpperCase(), centerX, labelY - 7);
 
-                        // Label Background (Pill)
-                        ctx.font = "bold 14px -apple-system, BlinkMacSystemFont, Roboto, sans-serif";
-                        const text = country.name;
-                        const distText = Math.round(minDistance).toLocaleString() + " km";
-                        const fullText = text; // Just name for pill title
-                        const width = ctx.measureText(fullText).width + 30;
-                        const height = 45;
-
-                        // shadow
-                        ctx.shadowColor = "rgba(0,0,0,0.3)";
-                        ctx.shadowBlur = 10;
-
-                        // Pill Shape
-                        ctx.fillStyle = "rgba(10, 20, 30, 0.75)";
-                        ctx.beginPath();
-                        ctx.roundRect(centerX - width / 2, labelY - height / 2, width, height, 8);
-                        ctx.fill();
-                        ctx.shadowBlur = 0; // reset
-
-                        // Border
-                        ctx.strokeStyle = "rgba(255,255,255,0.3)";
-                        ctx.lineWidth = 1;
-                        ctx.stroke();
-
-                        // Text Name
-                        ctx.fillStyle = "white";
-                        ctx.textAlign = "center";
-                        ctx.textBaseline = "middle";
-                        ctx.fillText(text, centerX, labelY - 7);
-
-                        // Text Distance
-                        ctx.font = "11px -apple-system, BlinkMacSystemFont, Roboto, sans-serif";
-                        ctx.fillStyle = "#ccc";
-                        ctx.fillText(distText, centerX, labelY + 8);
-
-                    }
+                    ctx.restore();
                 }
             });
         }
