@@ -5,12 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ocean Gazer</title>
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Montserrat:wght@200;400;600&display=swap"
-        rel="stylesheet">
     <style>
         body,
         html {
@@ -19,10 +13,9 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background: #000;
             color: white;
-            overflow: hidden;
         }
 
         #camera-feed {
@@ -35,14 +28,29 @@
             z-index: 1;
         }
 
-        /* UI & Glassmorphism */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.3);
+            /* Slight dim for readability */
+            pointer-events: none;
+            z-index: 2;
+        }
+
         #start-screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at center, #1a2a3a 0%, #000000 100%);
+            background: #000;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -50,98 +58,67 @@
             z-index: 100;
             pointer-events: auto;
             text-align: center;
-            padding: 30px;
+            padding: 20px;
             box-sizing: border-box;
         }
 
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 30px;
-            width: 100%;
-            max-width: 400px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
-
         h1 {
-            font-family: 'Montserrat', sans-serif;
             font-weight: 200;
-            font-size: 2.5rem;
-            letter-spacing: 4px;
-            margin: 0 0 10px 0;
-            text-transform: uppercase;
-            background: linear-gradient(135deg, #fff 0%, #888 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        p.subtitle {
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.6);
-            line-height: 1.5;
-            margin-bottom: 20px;
-        }
-
-        .mode-btn {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 20px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: left;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .mode-btn:hover,
-        .mode-btn:active {
-            background: rgba(64, 169, 255, 0.1);
-            border-color: rgba(64, 169, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .mode-btn h3 {
-            font-family: 'Montserrat', sans-serif;
-            font-size: 1.1rem;
-            margin: 0 0 5px 0;
-            color: #fff;
-        }
-
-        .mode-btn span {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        /* HUD Styles for Normal Text Mode */
-        #result-name {
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 200;
-            font-size: 2.5rem;
-            letter-spacing: 1px;
-        }
-
-        #result-distance {
-            font-family: 'Inter', monospace;
-            /* Tech look */
-            color: #40a9ff;
             letter-spacing: 2px;
+            margin-bottom: 2rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        button {
+            background: white;
+            color: black;
+            border: none;
+            padding: 15px 30px;
             font-size: 1.2rem;
-            margin-top: 5px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .info-text {
+            font-size: 1.5rem;
+            text-align: center;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+            margin-bottom: 10px;
+            max-width: 80%;
+        }
+
+        .secondary-text {
+            font-size: 1rem;
+            opacity: 0.8;
+            text-shadow: 0 1px 5px rgba(0, 0, 0, 0.8);
         }
 
         #compass-debug {
-            font-family: 'Inter', monospace;
-            font-size: 0.7rem;
-            letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.4);
+            position: absolute;
+            bottom: 20px;
+            font-size: 0.8rem;
+            opacity: 0.6;
+            z-index: 3;
+        }
+
+        #ar-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+
+        #result-name,
+        #result-distance {
+            z-index: 3;
         }
     </style>
 </head>
@@ -152,87 +129,86 @@
     <video id="camera-feed" autoplay playsinline muted></video>
 
     <!-- UI Overlay -->
-    <div id="ui-layer"
-        style="position: absolute; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;  pointer-events:none; z-index:2;">
+    <div id="ui-layer">
         <canvas id="ar-canvas"></canvas>
-        <div id="result-name"></div>
-        <div id="result-distance"></div>
+        <div id="result-name" class="info-text">Point your phone at the sea...</div>
+        <div id="result-distance" class="secondary-text">--</div>
         <div id="compass-debug">Waiting for sensors...</div>
     </div>
 
     <!-- Start Screen / Permissions -->
     <div id="start-screen">
-        <div class="glass-card">
-            <div>
-                <h1>Ocean Gazer</h1>
-                <p class="subtitle">Augmented Reality Geography</p>
-            </div>
-
-            <button id="btn-single" class="mode-btn">
-                <h3>Single Beam</h3>
-                <span>Identify land directly ahead.</span>
-            </button>
-
-            <button id="btn-multiple" class="mode-btn">
-                <h3>Horizon Scanner</h3>
-                <span>Visualize all coastlines in AR.</span>
-            </button>
+        <h1>OCEAN GAZER</h1>
+        <p style="margin-bottom: 30px; line-height: 1.5; color: #ccc;">
+            This experience requires camera access, <br>GPS location, and compass access.
+        </p>
+        <div style="display: flex; gap: 15px; flex-direction: column;">
+            <button id="btn-single">Single Country</button>
+            <button id="btn-multiple">Multiple Countries (AR)</button>
         </div>
     </div>
 
     <script>
         // --- Configuration & Data ---
 
-        // Simplified Global Polygons (Lat, Lon)
-        // These are very rough approximations for prototype purposes.
         const COUNTRIES = [
-            // --- North America ---
-            { name: "🇺🇸 United States", poly: [[24.5, -81], [32, -81], [35, -75], [41, -70], [44, -67], [49, -67], [49, -125], [25, -125], [25, -97], [30, -95]] },
-            { name: "🇨🇦 Canada", poly: [[42, -125], [50, -128], [60, -140], [70, -140], [80, -130], [83, -60], [60, -60], [45, -60], [42, -83]] },
-            { name: "🇲🇽 Mexico", poly: [[15, -92], [32, -117], [32, -99], [26, -97], [18, -87]] },
-            { name: "�� Greenland", poly: [[60, -45], [83, -70], [83, -10], [60, -40]] },
-
-            // --- South America ---
-            { name: "🇧🇷 Brazil", poly: [[-33, -53], [-23, -42], [-10, -35], [4, -51], [0, -70], [-10, -70], [-20, -60]] },
-            { name: "🇦🇷 Argentina", poly: [[-55, -66], [-35, -55], [-22, -65], [-22, -73], [-50, -73]] },
-            { name: "🇨🇱 Chile", poly: [[-56, -67], [-18, -70], [-18, -69], [-56, -66]] },
-            { name: "�� Peru", poly: [[-18, -70], [-3, -80], [-3, -69], [-18, -69]] },
-            { name: "🇨🇴 Colombia", poly: [[-4, -70], [12, -71], [12, -75], [-4, -79]] },
-            { name: "🇻🇪 Venezuela", poly: [[0, -66], [12, -71], [12, -60], [8, -60]] },
-
-            // --- Europe ---
-            { name: "🇬🇧 United Kingdom", poly: [[50, -6], [59, -6], [59, 2], [50, 2]] },
-            { name: "🇮🇪 Ireland", poly: [[51.4, -10.5], [55.4, -10.5], [55.4, -5.5], [51.4, -5.5]] },
-            { name: "🇮🇸 Iceland", poly: [[63, -24], [66, -24], [66, -13], [63, -13]] },
-            { name: "🇳🇴 Norway", poly: [[58, 5], [71, 20], [71, 31], [58, 12]] },
-            { name: "🇸🇪 Sweden", poly: [[55, 11], [69, 20], [69, 24], [55, 14]] },
-            { name: "�� Spain", poly: [[36, -9], [44, -9], [44, 3], [36, 3]] },
-            { name: "🇵🇹 Portugal", poly: [[37, -9.5], [42, -9.5], [42, -6], [37, -6]] },
-            { name: "🇫🇷 France", poly: [[43, -4], [49, -5], [51, 2], [43, 8]] },
-            { name: "🇮🇹 Italy", poly: [[38, 8], [46, 7], [46, 14], [38, 16]] },
-
-            // --- Africa ---
-            { name: "�� Morocco", poly: [[28, -13], [36, -6], [35, -2], [30, -5]] },
-            { name: "South Africa", poly: [[-34, 18], [-22, 16], [-22, 33], [-34, 28]] },
-            { name: "West Africa (General)", poly: [[4, -10], [15, -17], [25, -15], [30, 10], [4, 10]] },
-            { name: "East Africa (General)", poly: [[-10, 40], [15, 40], [12, 51], [-10, 41]] },
-            { name: "�� Madagascar", poly: [[-25, 43], [-12, 49], [-15, 51], [-26, 45]] },
-
-            // --- Asia / Middle East ---
-            { name: "🇷🇺 Russia", poly: [[42, 130], [55, 135], [60, 180], [70, 180], [70, 40], [50, 40], [42, 48]] }, // Simplified roughly
-            { name: "🇨🇳 China", poly: [[20, 105], [40, 75], [50, 135], [30, 122], [20, 110]] },
-            { name: "�� India", poly: [[8, 77], [20, 70], [30, 75], [20, 88], [8, 78]] },
-            { name: "🇯🇵 Japan", poly: [[31, 130], [45, 140], [45, 146], [31, 131]] },
-            { name: "🇸🇦 Saudi Arabia", poly: [[16, 42], [30, 35], [30, 50], [16, 53]] },
-
-            // --- SE Asia / Oceania ---
-            { name: "🇦🇺 Australia", poly: [[-35, 115], [-11, 130], [-11, 142], [-30, 153], [-39, 146]] },
-            { name: "�� New Zealand", poly: [[-46, 166], [-34, 172], [-34, 179], [-47, 167]] },
-            { name: "🇮🇩 Indonesia", poly: [[-10, 95], [6, 95], [6, 141], [-10, 141]] }, // Very rough box
-            { name: "🇵🇭 Philippines", poly: [[5, 119], [18, 120], [18, 126], [5, 126]] },
-
-            // --- Antarctica ---
-            { name: "🇦🇶 Antarctica", poly: [[-65, -180], [-65, 180], [-90, 180], [-90, -180]] }
+            {
+                name: "🇺🇸 United States",
+                poly: [
+                    [24.5, -81.8], [32.0, -81.0], [35.0, -75.0], [41.0, -70.0], [45.0, -67.0],
+                    [47.0, -68.0], [49.0, -95.0], [30.0, -95.0], [25.0, -97.0]
+                ] // Rough East/Gulf Coast
+            },
+            {
+                name: "🇨🇦 Canada",
+                poly: [
+                    [43.0, -66.0], [45.0, -67.0], [50.0, -60.0], [55.0, -55.0],
+                    [60.0, -60.0], [60.0, -100.0], [45.0, -80.0]
+                ]
+            },
+            {
+                name: "🇧🇷 Brazil",
+                poly: [
+                    [-33.0, -53.0], [-23.0, -42.0], [-10.0, -35.0], [-5.0, -35.0],
+                    [4.0, -50.0], [0.0, -70.0], [-20.0, -60.0]
+                ]
+            },
+            {
+                name: "🇮🇪 Ireland",
+                poly: [
+                    [51.4, -10.5], [55.4, -10.5], [55.4, -5.5], [51.4, -5.5]
+                ]
+            },
+            {
+                name: "🇬🇧 United Kingdom",
+                poly: [
+                    [50.0, -6.0], [59.0, -6.0], [59.0, 2.0], [50.0, 2.0]
+                ]
+            },
+            {
+                name: "🇫🇷 France",
+                poly: [
+                    [43.0, -4.0], [48.0, -5.0], [51.0, 2.0], [43.0, 8.0]
+                ]
+            },
+            {
+                name: "🇪🇸 Spain",
+                poly: [
+                    [36.0, -9.0], [44.0, -9.0], [44.0, 3.0], [36.0, 3.0]
+                ]
+            },
+            {
+                name: "🇵🇹 Portugal",
+                poly: [
+                    [37.0, -9.5], [42.0, -9.5], [42.0, -6.0], [37.0, -6.0]
+                ]
+            },
+            {
+                name: "🇲🇦 Morocco",
+                poly: [
+                    [30.0, -12.0], [36.0, -6.0], [35.0, -2.0], [28.0, -9.0]
+                ]
+            }
         ];
 
         // --- State ---
@@ -338,98 +314,131 @@
             return null;
         }
 
-        // --- AR Render Logic (HUD Style) ---
+        // --- AR Render Logic ---
+
         function drawAR() {
-            // Fix: Clean entire canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // Horizon roughly at center
             const horizonY = canvas.height / 2;
+            // FOV Width in degrees approx (Mobile Portrait)
             const fov = 60;
             const pxPerDeg = canvas.width / fov;
 
-            // Draw Horizon Line
-            ctx.save();
-            ctx.beginPath();
-            ctx.moveTo(0, horizonY);
-            ctx.lineTo(canvas.width, horizonY);
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-            ctx.setLineDash([5, 10]);
-            ctx.stroke();
-            ctx.restore();
+            // Sort countries by distance ?? Nah, just draw them.
+
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.lineWidth = 2;
+            ctx.fillStyle = "rgba(255, 255, 255, 0.1)"; // Very faint fill
+
+            let visibleShapeCount = 0;
 
             COUNTRIES.forEach(country => {
-                let pointsOnScreen = [];
-                let sumX = 0;
+                // Skip own country if needed, or draw it too? 
+                // Let's filter like findLand does roughly, or just draw everything.
+                // Simple version: draw everything.
 
+                let hasVisiblePoints = false;
+                const projectedPoints = [];
+
+                // We need to find the bearing to EACH point in the polygon
                 country.poly.forEach(pt => {
                     const lat2 = pt[0];
                     const lon2 = pt[1];
 
-                    // Calculate Bearing
+                    // Calculate Bearing (Rhumb line or Great Circle initial bearing?)
+                    // Initial bearing is better for visual correctness locally.
                     const y = Math.sin(toRad(lon2 - state.lon)) * Math.cos(toRad(lat2));
                     const x = Math.cos(toRad(state.lat)) * Math.sin(toRad(lat2)) -
                         Math.sin(toRad(state.lat)) * Math.cos(toRad(lat2)) * Math.cos(toRad(lon2 - state.lon));
                     const brng = toDeg(Math.atan2(y, x));
                     const bearing = (brng + 360) % 360;
 
+                    // Relative bearing to current heading
                     let rel = bearing - state.heading;
+                    // Normalize to -180...180
                     while (rel < -180) rel += 360;
                     while (rel > 180) rel -= 360;
 
+                    // If within FOV + buffer
                     if (Math.abs(rel) < (fov / 2 + 20)) {
-                        const sx = (canvas.width / 2) + (rel * pxPerDeg);
-                        const sy = horizonY;
-                        pointsOnScreen.push({ x: sx, y: sy });
-                        sumX += sx;
+                        hasVisiblePoints = true;
                     }
+
+                    // Project X
+                    const screenX = (canvas.width / 2) + (rel * pxPerDeg);
+                    // Project Y - Simple "Horizon" projection
+                    // Distance is huge, so just clamp near horizon
+                    // A tiny offset based on lat might simulate curvature? 
+                    // Let's just stick to horizon for "Silhouettes"
+                    const screenY = horizonY;
+
+                    projectedPoints.push({ x: screenX, y: screenY, label: country.name, rel: rel });
                 });
 
-                if (pointsOnScreen.length > 0) {
-                    const centerX = sumX / pointsOnScreen.length;
-
-                    // --- HUD Marker Visuals ---
-                    const markerHeight = 40;
-                    const labelY = horizonY - markerHeight;
-
-                    // 1. Vertical Pin Line
-                    ctx.save();
+                if (hasVisiblePoints) {
+                    visibleShapeCount++;
                     ctx.beginPath();
-                    ctx.moveTo(centerX, horizonY);
-                    ctx.lineTo(centerX, labelY);
-                    ctx.strokeStyle = "#40a9ff"; // Tech blue
-                    ctx.lineWidth = 1;
-                    ctx.globalAlpha = 0.8;
-                    ctx.stroke();
+                    // Just drawing dots or lines along horizon is boring.
+                    // To make it a "shape", we need "height". 
+                    // Since we don't have elevation data, let's fake it:
+                    // Draw a polygon from the horizon UP a bit?? No, land is typically "on" the water.
+                    // Actually, if we just connect the dots on the horizon line workflow, it's a line.
+                    // Better: Create a fake "height" for visual feedback.
 
-                    // 2. The Dot on Horizon
-                    ctx.beginPath();
-                    ctx.arc(centerX, horizonY, 3, 0, Math.PI * 2);
-                    ctx.fillStyle = "#40a9ff";
-                    ctx.fill();
+                    // IMPROVED VISUALIZATION:
+                    // Connect the points. Since they are all on Y=horizonY, it's a flat line.
+                    // That's invisible/boring.
+                    // Let's vary Y based on distance to make it look like it recedes?
+                    // Or let's just draw vertical markers for each vertex?
+                    // Let's try: Draw the polygon shape assuming the points have some arbitrary height?
 
-                    // 3. Label Box (Glassy)
-                    ctx.font = "14px Inter";
-                    const textWidth = ctx.measureText(country.name).width;
-                    const padding = 8;
-                    const boxX = centerX - (textWidth / 2) - padding;
-                    const boxY = labelY - 24;
-                    const boxW = textWidth + (padding * 2);
-                    const boxH = 24;
+                    // Simple working solution for "Multiple Countries":
+                    // Draw the name of the country floating at its centroid's bearing.
 
-                    ctx.fillStyle = "rgba(0, 0, 0, 0.6)"; // Dark background for contrast
-                    ctx.fillRect(boxX, boxY, boxW, boxH);
+                    // Calculate Centroid bearing roughly
+                    let sumX = 0;
+                    let count = 0;
+                    projectedPoints.forEach(p => {
+                        if (Math.abs(p.rel) < 90) { // Only count points vaguely in front
+                            sumX += p.x;
+                            count++;
+                        }
+                    });
 
-                    // Border for tech feel
-                    ctx.strokeStyle = "rgba(64, 169, 255, 0.5)";
-                    ctx.lineWidth = 1;
-                    ctx.strokeRect(boxX, boxY, boxW, boxH);
+                    if (count > 0) {
+                        const centerX = sumX / count;
 
-                    // Text
-                    ctx.fillStyle = "white";
-                    ctx.textAlign = "center";
-                    ctx.fillText(country.name.toUpperCase(), centerX, labelY - 7);
+                        // Draw Label
+                        ctx.save();
+                        ctx.fillStyle = "white";
+                        ctx.font = "16px sans-serif";
+                        ctx.textAlign = "center";
+                        ctx.fillText(country.name, centerX, horizonY - 20);
 
-                    ctx.restore();
+                        // Draw Indicator Line
+                        ctx.beginPath();
+                        ctx.moveTo(centerX, horizonY);
+                        ctx.lineTo(centerX, horizonY - 15);
+                        ctx.strokeStyle = "white";
+                        ctx.stroke();
+
+                        // Draw faint polygon lines along horizon?
+                        // It's just a line on the horizon. Let's make it a thick semi-transparent band.
+                        // Sort points by X?
+                        // Polygons are ordered.
+
+                        ctx.beginPath();
+                        let first = true;
+                        projectedPoints.forEach(p => {
+                            if (first) { ctx.moveTo(p.x, horizonY); first = false; }
+                            else { ctx.lineTo(p.x, horizonY); }
+                        });
+                        ctx.lineWidth = 4;
+                        ctx.strokeStyle = "rgba(255,255,255,0.3)";
+                        ctx.stroke();
+                        ctx.restore();
+                    }
                 }
             });
         }
