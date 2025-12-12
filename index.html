@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ocean Gazer</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #000;
+            color: white;
+        }
+
+        #camera-feed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.3); /* Slight dim for readability */
+            pointer-events: none;
+        }
+
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            pointer-events: auto;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-weight: 200;
+            letter-spacing: 2px;
+            margin-bottom: 2rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        button {
+            background: white;
+            color: black;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .info-text {
+            font-size: 1.5rem;
+            text-align: center;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+            margin-bottom: 10px;
+            max-width: 80%;
+        }
+
+        .secondary-text {
+            font-size: 1rem;
+            opacity: 0.8;
+            text-shadow: 0 1px 5px rgba(0,0,0,0.8);
+        }
+
+        #compass-debug {
+            position: absolute;
+            bottom: 20px;
+            font-size: 0.8rem;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Camera Feed -->
+    <video id="camera-feed" autoplay playsinline muted></video>
+
+    <!-- UI Overlay -->
+    <div id="ui-layer">
+        <div id="result-name" class="info-text">Point your phone at the sea...</div>
+        <div id="result-distance" class="secondary-text">--</div>
+        <div id="compass-debug">Waiting for sensors...</div>
+    </div>
+
+    <!-- Start Screen / Permissions -->
+    <div id="start-screen">
+        <h1>OCEAN GAZER</h1>
+        <p style="margin-bottom: 30px; line-height: 1.5; color: #ccc;">
+            This experience requires camera access, <br>GPS location, and compass access.
+        </p>
+        <button id="start-btn">Start Experience</button>
+    </div>
+
+    <script>
+        // --- Configuration & Data ---
+
+        // Simplified Polygons (Lat, Lon) ensuring counter-clockwise or clockwise consistency doesn't strictly matter for simple raycasting check, 
+        // but defining as simple arrays of points.
+        // NOTE: These are ROUGH approximations for the prototype.
+        const COUNTRIES = [
+            {
+                name: "🇺🇸 United States",
+                poly: [
+                    [24.5, -81.8], [32.0, -81.0], [35.0, -75.0], [41.0, -70.0], [45.0, -67.0], 
+                    [47.0, -68.0], [49.0, -95.0], [30.0, -95.0], [25.0, -97.0] 
+                ] // Rough East/Gulf Coast
+            },
+            {
+                name: "🇨🇦 Canada",
+                poly: [
+                    [43.0, -66.0], [45.0, -67.0], [50.0, -60.0], [55.0, -55.0], 
+                    [60.0, -60.0], [60.0, -100.0], [45.0, -80.0]
+                ]
+            },
+            {
+                name: "🇧🇷 Brazil",
+                poly: [
+                    [-33.0, -53.0], [-23.0, -42.0], [-10.0, -35.0], [-5.0, -35.0], 
+                    [4.0, -50.0], [0.0, -70.0], [-20.0, -60.0]
+                ]
+            },
+            {
+                name: "🇮🇪 Ireland",
+                poly: [
+                    [51.4, -10.5], [55.4, -10.5], [55.4, -5.5], [51.4, -5.5]
+                ]
+            },
+            {
+                name: "🇬🇧 United Kingdom",
+                poly: [
+                    [50.0, -6.0], [59.0, -6.0], [59.0, 2.0], [50.0, 2.0]
+                ]
+            },
+            {
+                name: "🇫🇷 France",
+                poly: [
+                    [43.0, -4.0], [48.0, -5.0], [51.0, 2.0], [43.0, 8.0]
+                ]
+            },
+            {
+                name: "🇪🇸 Spain",
+                poly: [
+                    [36.0, -9.0], [44.0, -9.0], [44.0, 3.0], [36.0, 3.0]
+                ]
+            },
+            {
+                name: "🇵🇹 Portugal",
+                poly: [
+                    [37.0, -9.5], [42.0, -9.5], [42.0, -6.0], [37.0, -6.0]
+                ]
+            },
+            {
+                name: "🇲🇦 Morocco",
+                poly: [
+                    [30.0, -12.0], [36.0, -6.0], [35.0, -2.0], [28.0, -9.0]
+                ]
+            }
+        ];
+
+        // --- State ---
+        const state = {
+            lat: null,
+            lon: null,
+            heading: 0,
+            hasHeading: false,
+            hasLocation: false
+        };
+
+        const R = 6371; // Earth Radius in km
+
+        // --- DOM Elements ---
+        const startBtn = document.getElementById('start-btn');
+        const startScreen = document.getElementById('start-screen');
+        const videoElement = document.getElementById('camera-feed');
+        const elName = document.getElementById('result-name');
+        const elDist = document.getElementById('result-distance');
+        const elDebug = document.getElementById('compass-debug');
+
+        // --- Math & Geography Functions ---
+
+        function toRad(deg) { return deg * Math.PI / 180; }
+        function toDeg(rad) { return rad * 180 / Math.PI; }
+
+        // Calculate destination point given start, bearing (deg), and distance (km)
+        function getDestination(lat1, lon1, bearing, dist) {
+            const lat1Rad = toRad(lat1);
+            const lon1Rad = toRad(lon1);
+            const bearingRad = toRad(bearing);
+            const angDist = dist / R;
+
+            const lat2Rad = Math.asin(Math.sin(lat1Rad) * Math.cos(angDist) +
+                                      Math.cos(lat1Rad) * Math.sin(angDist) * Math.cos(bearingRad));
+            
+            let lon2Rad = lon1Rad + Math.atan2(Math.sin(bearingRad) * Math.sin(angDist) * Math.cos(lat1Rad),
+                                               Math.cos(angDist) - Math.sin(lat1Rad) * Math.sin(lat2Rad));
+            
+            // Normalize lon to -180 to +180
+            lon2Rad = (lon2Rad + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
+
+            return {
+                lat: toDeg(lat2Rad),
+                lon: toDeg(lon2Rad)
+            };
+        }
+
+        // Ray Casting algorithm to check if point is in polygon
+        function isPointInPolygon(point, vs) {
+            // point: {lat, lon}, vs: [[lat, lon], ...]
+            const x = point.lon, y = point.lat;
+            let inside = false;
+            for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+                const xi = vs[i][1], yi = vs[i][0];
+                const xj = vs[j][1], yj = vs[j][0];
+                
+                const intersect = ((yi > y) !== (yj > y)) &&
+                    (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        // The Core Logic: Raycast across the ocean
+        function findLand(lat, lon, heading) {
+            // Step size in km. 100km is decent for performance vs accuracy on this scale.
+            const step = 50; 
+            const maxDist = 20000; // Half way around world roughly
+
+            for (let d = step; d < maxDist; d += step) {
+                const p = getDestination(lat, lon, heading, d);
+                
+                // Check all countries
+                for (const country of COUNTRIES) {
+                    if (isPointInPolygon(p, country.poly)) {
+                        return { country: country.name, distance: d };
+                    }
+                }
+            }
+            return null;
+        }
+
+        // --- Update Loop ---
+        let lastCalcTime = 0;
+        
+        function updateUI() {
+            if (!state.hasLocation || !state.hasHeading) {
+                elDebug.innerText = `GPS: ${state.hasLocation ? 'OK' : 'Waiting'} | Compass: ${state.hasHeading ? 'OK' : 'Waiting'}`;
+                return;
+            }
+
+            const now = Date.now();
+            if (now - lastCalcTime > 500) { // Throttle internal logic to 2fps for battery saving
+                lastCalcTime = now;
+                
+                const result = findLand(state.lat, state.lon, state.heading);
+                
+                if (result) {
+                    elName.innerText = result.country;
+                    elDist.innerText = `${Math.round(result.distance).toLocaleString()} km`;
+                } else {
+                    elName.innerText = "The Open Ocean";
+                    elDist.innerText = "No land in sight";
+                }
+                
+                elDebug.innerText = `Heading: ${Math.round(state.heading)}° | Lat: ${state.lat.toFixed(2)} Lon: ${state.lon.toFixed(2)}`;
+            }
+        }
+
+        // --- Hardware Access ---
+
+        async function init() {
+            startScreen.style.display = 'none';
+
+            // 1. Camera
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: { exact: "environment" } } 
+                }).catch(() => {
+                    // Fallback if "environment" exact fails (some deskops)
+                    return navigator.mediaDevices.getUserMedia({ video: true });
+                });
+                videoElement.srcObject = stream;
+            } catch (err) {
+                console.error("Camera fail:", err);
+                alert("Camera access failed. Please enable permissions.");
+            }
+
+            // 2. Geolocation
+            if ("geolocation" in navigator) {
+                navigator.geolocation.watchPosition((pos) => {
+                    state.lat = pos.coords.latitude;
+                    state.lon = pos.coords.longitude;
+                    state.hasLocation = true;
+                    updateUI();
+                }, (err) => {
+                    console.error("GPS fail:", err);
+                    alert("GPS access failed.");
+                }, {
+                    enableHighAccuracy: true
+                });
+            } else {
+                alert("Geolocation not supported.");
+            }
+
+            // 3. Orientation
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                // iOS 13+
+                DeviceOrientationEvent.requestPermission()
+                    .then(response => {
+                        if (response === 'granted') {
+                            window.addEventListener('deviceorientation', handleOrientation);
+                        } else {
+                            alert("Compass permission denied.");
+                        }
+                    })
+                    .catch(console.error);
+            } else {
+                // Android / Non-iOS
+                window.addEventListener('deviceorientationabsolute', handleAbsoluteOrientation);
+                // Fallback normal orientation
+                window.addEventListener('deviceorientation', handleOrientation);
+            }
+        }
+
+        function handleAbsoluteOrientation(e) {
+            // Android Chrome often uses this for true north
+            if (e.alpha !== null) {
+                state.heading = 360 - e.alpha; 
+                state.hasHeading = true;
+                updateUI();
+            }
+        }
+
+        function handleOrientation(e) {
+            // iOS WebKit
+            if (e.webkitCompassHeading) {
+                state.heading = e.webkitCompassHeading;
+                state.hasHeading = true;
+                updateUI();
+            } else if (!state.hasHeading && e.alpha !== null) { 
+                // Fallback for devices that don't support absolute but send alpha
+                // Check if absolute is true
+                if (e.absolute) {
+                     state.heading = 360 - e.alpha;
+                     state.hasHeading = true;
+                     updateUI();
+                }
+            }
+        }
+
+        // Start Button
+        startBtn.addEventListener('click', init);
+
+    </script>
+</body>
+</html>
