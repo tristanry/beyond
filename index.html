@@ -104,6 +104,21 @@
             bottom: 20px;
             font-size: 0.8rem;
             opacity: 0.6;
+            z-index: 3;
+        }
+
+        #ar-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+
+        #result-name,
+        #result-distance {
+            z-index: 3;
         }
     </style>
 </head>
@@ -115,6 +130,7 @@
 
     <!-- UI Overlay -->
     <div id="ui-layer">
+        <canvas id="ar-canvas"></canvas>
         <div id="result-name" class="info-text">Point your phone at the sea...</div>
         <div id="result-distance" class="secondary-text">--</div>
         <div id="compass-debug">Waiting for sensors...</div>
@@ -126,15 +142,15 @@
         <p style="margin-bottom: 30px; line-height: 1.5; color: #ccc;">
             This experience requires camera access, <br>GPS location, and compass access.
         </p>
-        <button id="start-btn">Start Experience</button>
+        <div style="display: flex; gap: 15px; flex-direction: column;">
+            <button id="btn-single">Single Country</button>
+            <button id="btn-multiple">Multiple Countries (AR)</button>
+        </div>
     </div>
 
     <script>
         // --- Configuration & Data ---
 
-        // Simplified Polygons (Lat, Lon) ensuring counter-clockwise or clockwise consistency doesn't strictly matter for simple raycasting check, 
-        // but defining as simple arrays of points.
-        // NOTE: These are ROUGH approximations for the prototype.
         const COUNTRIES = [
             {
                 name: "🇺🇸 United States",
@@ -207,12 +223,23 @@
         const R = 6371; // Earth Radius in km
 
         // --- DOM Elements ---
-        const startBtn = document.getElementById('start-btn');
+        const btnSingle = document.getElementById('btn-single');
+        const btnMultiple = document.getElementById('btn-multiple');
         const startScreen = document.getElementById('start-screen');
         const videoElement = document.getElementById('camera-feed');
         const elName = document.getElementById('result-name');
         const elDist = document.getElementById('result-distance');
         const elDebug = document.getElementById('compass-debug');
+        const canvas = document.getElementById('ar-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Resize canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
         // --- Math & Geography Functions ---
 
@@ -287,6 +314,135 @@
             return null;
         }
 
+        // --- AR Render Logic ---
+
+        function drawAR() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Horizon roughly at center
+            const horizonY = canvas.height / 2;
+            // FOV Width in degrees approx (Mobile Portrait)
+            const fov = 60;
+            const pxPerDeg = canvas.width / fov;
+
+            // Sort countries by distance ?? Nah, just draw them.
+
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+            ctx.lineWidth = 2;
+            ctx.fillStyle = "rgba(255, 255, 255, 0.1)"; // Very faint fill
+
+            let visibleShapeCount = 0;
+
+            COUNTRIES.forEach(country => {
+                // Skip own country if needed, or draw it too? 
+                // Let's filter like findLand does roughly, or just draw everything.
+                // Simple version: draw everything.
+
+                let hasVisiblePoints = false;
+                const projectedPoints = [];
+
+                // We need to find the bearing to EACH point in the polygon
+                country.poly.forEach(pt => {
+                    const lat2 = pt[0];
+                    const lon2 = pt[1];
+
+                    // Calculate Bearing (Rhumb line or Great Circle initial bearing?)
+                    // Initial bearing is better for visual correctness locally.
+                    const y = Math.sin(toRad(lon2 - state.lon)) * Math.cos(toRad(lat2));
+                    const x = Math.cos(toRad(state.lat)) * Math.sin(toRad(lat2)) -
+                        Math.sin(toRad(state.lat)) * Math.cos(toRad(lat2)) * Math.cos(toRad(lon2 - state.lon));
+                    const brng = toDeg(Math.atan2(y, x));
+                    const bearing = (brng + 360) % 360;
+
+                    // Relative bearing to current heading
+                    let rel = bearing - state.heading;
+                    // Normalize to -180...180
+                    while (rel < -180) rel += 360;
+                    while (rel > 180) rel -= 360;
+
+                    // If within FOV + buffer
+                    if (Math.abs(rel) < (fov / 2 + 20)) {
+                        hasVisiblePoints = true;
+                    }
+
+                    // Project X
+                    const screenX = (canvas.width / 2) + (rel * pxPerDeg);
+                    // Project Y - Simple "Horizon" projection
+                    // Distance is huge, so just clamp near horizon
+                    // A tiny offset based on lat might simulate curvature? 
+                    // Let's just stick to horizon for "Silhouettes"
+                    const screenY = horizonY;
+
+                    projectedPoints.push({ x: screenX, y: screenY, label: country.name, rel: rel });
+                });
+
+                if (hasVisiblePoints) {
+                    visibleShapeCount++;
+                    ctx.beginPath();
+                    // Just drawing dots or lines along horizon is boring.
+                    // To make it a "shape", we need "height". 
+                    // Since we don't have elevation data, let's fake it:
+                    // Draw a polygon from the horizon UP a bit?? No, land is typically "on" the water.
+                    // Actually, if we just connect the dots on the horizon line workflow, it's a line.
+                    // Better: Create a fake "height" for visual feedback.
+
+                    // IMPROVED VISUALIZATION:
+                    // Connect the points. Since they are all on Y=horizonY, it's a flat line.
+                    // That's invisible/boring.
+                    // Let's vary Y based on distance to make it look like it recedes?
+                    // Or let's just draw vertical markers for each vertex?
+                    // Let's try: Draw the polygon shape assuming the points have some arbitrary height?
+
+                    // Simple working solution for "Multiple Countries":
+                    // Draw the name of the country floating at its centroid's bearing.
+
+                    // Calculate Centroid bearing roughly
+                    let sumX = 0;
+                    let count = 0;
+                    projectedPoints.forEach(p => {
+                        if (Math.abs(p.rel) < 90) { // Only count points vaguely in front
+                            sumX += p.x;
+                            count++;
+                        }
+                    });
+
+                    if (count > 0) {
+                        const centerX = sumX / count;
+
+                        // Draw Label
+                        ctx.save();
+                        ctx.fillStyle = "white";
+                        ctx.font = "16px sans-serif";
+                        ctx.textAlign = "center";
+                        ctx.fillText(country.name, centerX, horizonY - 20);
+
+                        // Draw Indicator Line
+                        ctx.beginPath();
+                        ctx.moveTo(centerX, horizonY);
+                        ctx.lineTo(centerX, horizonY - 15);
+                        ctx.strokeStyle = "white";
+                        ctx.stroke();
+
+                        // Draw faint polygon lines along horizon?
+                        // It's just a line on the horizon. Let's make it a thick semi-transparent band.
+                        // Sort points by X?
+                        // Polygons are ordered.
+
+                        ctx.beginPath();
+                        let first = true;
+                        projectedPoints.forEach(p => {
+                            if (first) { ctx.moveTo(p.x, horizonY); first = false; }
+                            else { ctx.lineTo(p.x, horizonY); }
+                        });
+                        ctx.lineWidth = 4;
+                        ctx.strokeStyle = "rgba(255,255,255,0.3)";
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+            });
+        }
+
         // --- Update Loop ---
         let lastCalcTime = 0;
 
@@ -297,8 +453,15 @@
             }
 
             const now = Date.now();
-            if (now - lastCalcTime > 500) { // Throttle internal logic to 2fps for battery saving
+
+            // 1. Single Mode Logic (Updates Text)
+            if (state.mode === 'single' && now - lastCalcTime > 500) {
                 lastCalcTime = now;
+
+                // Hide Canvas
+                canvas.style.display = 'none';
+                elName.style.display = 'block';
+                elDist.style.display = 'block';
 
                 const result = findLand(state.lat, state.lon, state.heading);
 
@@ -309,9 +472,20 @@
                     elName.innerText = "The Open Ocean";
                     elDist.innerText = "No land in sight";
                 }
-
-                elDebug.innerText = `Heading: ${Math.round(state.heading)}° | Lat: ${state.lat.toFixed(2)} Lon: ${state.lon.toFixed(2)}`;
             }
+            // 2. Multiple Mode Logic (Updates Canvas)
+            else if (state.mode === 'multiple') {
+                // Show Canvas
+                canvas.style.display = 'block';
+                // Hide main text
+                elName.style.display = 'none';
+                elDist.style.display = 'none';
+
+                // Run AR Loop (Target 60fps or whatever requestAnimationFrame gives, but simple here)
+                drawAR();
+            }
+
+            elDebug.innerText = `Mode: ${state.mode} | Heading: ${Math.round(state.heading)}°`;
         }
 
         // --- Hardware Access ---
@@ -397,7 +571,14 @@
         }
 
         // Start Button
-        startBtn.addEventListener('click', init);
+        // Start Buttons
+        function startApp(mode) {
+            state.mode = mode;
+            init();
+        }
+
+        btnSingle.addEventListener('click', () => startApp('single'));
+        btnMultiple.addEventListener('click', () => startApp('multiple'));
 
     </script>
 </body>
